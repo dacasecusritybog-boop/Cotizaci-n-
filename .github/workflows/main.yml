@@ -20,13 +20,24 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Ubicar el proyecto
+        run: |
+          if [ -z "$(find . -name settings.gradle -not -path './.git/*' | head -1)" ]; then
+            for z in *.zip; do [ -f "$z" ] && unzip -oq "$z" -d _proyecto; done
+          fi
+          F=$(find . -name settings.gradle -not -path './.git/*' | head -1)
+          [ -z "$F" ] && { echo "No se encontro settings.gradle en el repo"; ls -R | head -50; exit 1; }
+          echo "PROYECTO=$(dirname "$F")" >> "$GITHUB_ENV"
+          echo "Proyecto en: $(dirname "$F")"
+
       - name: Aceptar licencias del SDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Compilar APK debug
+        working-directory: ${{ env.PROYECTO }}
         run: gradle assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
           name: DACATECH-Cotizaciones-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROYECTO }}/app/build/outputs/apk/debug/*.apk
